@@ -1,5 +1,5 @@
 # 마찬가지로 이름을 정해줍니다.
-name: 'action'
+name: 'slack-notify'
 
 # 아까 `actions/setup-node@v2`를 사용할 때 with로 node-version을 넘겼던 거 기억나시나요?
 # 그 내부는 이렇게 생겼답니다. 저희도 input을 받아야될 거 같아요.
