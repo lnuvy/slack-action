@@ -99,7 +99,7 @@ jobs:
       - name: Send slack if completed
         # 성공할 때만 실행되겠죠?
         if: ${{ success() }}
-        uses: ./.github/actions/slack-notify/slack-notify
+        uses: ./.github/actions/slack-notify
         # status input은 받는 쪽에서 default 값을 정해놨기 때문에 success일 때만 넘겨줄게요.
         with:
           status: success
