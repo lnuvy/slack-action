@@ -1,4 +1,4 @@
-# 마찬가지로 이름을 정해줍니다.
+# Can't find 'action.yml', 'action.yaml' or 'Dockerfile' under '/home/runner/work/slack-hook/slack-hook/.github/actions/slack-notify'. Did you forget to run actions/checkout before running your local action?
 name: 'slack-notify'
 
 # 아까 `actions/setup-node@v2`를 사용할 때 with로 node-version을 넘겼던 거 기억나시나요?
