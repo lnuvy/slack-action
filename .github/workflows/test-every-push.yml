@@ -1,6 +1,7 @@
 # test-every-push.yml
 
 # workflow의 이름. 나중에 해당 값을 사용할 수 있기 때문에 저는 유니크하게 사용합니다.
+# add dep
 name: 'test-every-push'
 
 # workflow를 동작하게하는 trigger입니다.
