@@ -41,7 +41,5 @@ runs:
         # 이런 값들은 GitHub Actions에서 제공하는 환경변수 값들입니다.
         # 저는 환경변수들을 이용해서 슬랙 알림이 왔을 때 어떤 부분에서 실패했는지
         # 바로 클릭해서 GitHub 페이지를 띄워보고싶거든요.
-        MSG="{ \"text\":\">${EMOTICON} 현재시점까지 작업물 머지하여 <https://github.com/${GITHUB_REPOSITORY}|${GITHUB_REPOSITORY}>에 push 해두었습니다. \n 해당브랜치에서부터 작업을 부탁드립니다. \n ${{ inputs.status }}, branch=\`${GITHUB_REF#refs/heads/}\`\"}"
-
-        # input으로 받은 slack_incoming_url와 MSG를 실어서 보내줍니다. 그러면 슬랙으로 알람이 오겠죠?
+        MSG="{ \"text\":\">${EMOTICON} 현재시점까지 작업물 머지하여 <[\`${GITHUB_REF#refs/heads/}\`](https://github.com/${GITHUB_REPOSITORY}|${GITHUB_REPOSITORY})>에 push 해두었습니다.\n>해당브랜치에서부터 작업을 부탁드립니다. \`${{ github.actor }}\`\"}"
         curl -X POST -H 'Content-type: application/json' --data "${MSG}" "${{ inputs.slack_incoming_url }}"
