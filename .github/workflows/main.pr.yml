@@ -34,16 +34,20 @@ jobs:
           SLACK_INCOMING_URL: ${{secrets.SLACK_INCOMING_URL}}
           GITHUB_EVENT_ACTION: ${{ github.event.action }}
         run: |
+          echo "[DEBUG] review_helpers.sh 실행 전"
           source .github/script/review_helpers.sh
+          echo "[DEBUG] review_helpers.sh 실행 완료"
+          echo "[DEBUG] github.event.pull_request.requested_reviewers: ${{ toJSON(github.event.pull_request.requested_reviewers) }}"
           REVIEW_MEMBERS=$(cat .github/config/review_members.json)
+          echo "[DEBUG] REVIEW_MEMBERS: $REVIEW_MEMBERS"
 
           PR_URL="${{ github.event.pull_request.html_url }}"
           PR_TITLE="${{ github.event.pull_request.title }}"
           PR_AUTHOR_LOGIN="${{ github.event.pull_request.user.login }}"
-
-          # is_review_member 함수가 없으므로 author가 멤버가 아니면 종료하는 로직 제거
+          echo "[DEBUG] PR_AUTHOR_LOGIN: $PR_AUTHOR_LOGIN"
 
           AUTHOR_SLACK_ID=$(get_review_member_info "$REVIEW_MEMBERS" "$PR_AUTHOR_LOGIN" "slack_id")
+          echo "[DEBUG] AUTHOR_SLACK_ID: $AUTHOR_SLACK_ID"
           AUTHOR_MENTION="<@${AUTHOR_SLACK_ID}>"
 
           if [ "${{ job.status }}" = "success" ]; then
@@ -66,14 +70,19 @@ jobs:
 
           if [ "$GITHUB_EVENT_ACTION" = "opened" ] || [ "$GITHUB_EVENT_ACTION" = "ready_for_review" ]; then
             REVIEWER_LOGINS=$(echo '${{ toJSON(github.event.pull_request.requested_reviewers) }}' | jq -r '.[].login')
+            echo "[DEBUG] REVIEWER_LOGINS: $REVIEWER_LOGINS"
             FIRST_REVIEWER=$(echo "$REVIEWER_LOGINS" | head -n1)
+            echo "[DEBUG] FIRST_REVIEWER: $FIRST_REVIEWER"
             FIRST_REVIEWER_SLACK_ID=$(get_review_member_info "$REVIEW_MEMBERS" "$FIRST_REVIEWER" "slack_id")
+            echo "[DEBUG] FIRST_REVIEWER_SLACK_ID: $FIRST_REVIEWER_SLACK_ID"
             REVIEWER_MENTION=""
             if [ -n "$FIRST_REVIEWER_SLACK_ID" ]; then
               REVIEWER_MENTION="<@${FIRST_REVIEWER_SLACK_ID}>"
             fi
             MESSAGE+="\n*리뷰어:* $REVIEWER_MENTION :crown-sw:"
             echo "$REVIEWER_LOGINS" | tail -n +2 > reviewers_for_github_comment.txt
+            echo "[DEBUG] reviewers_for_github_comment.txt 내용:"
+            cat reviewers_for_github_comment.txt
           fi
 
           if [ -n "$SLACK_INCOMING_URL" ]; then
