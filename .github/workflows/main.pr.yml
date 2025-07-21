@@ -1,0 +1,107 @@
+name: palette-pull-request
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+
+jobs:
+  build:
+    name: Test And Build
+    runs-on:
+      group: drpalette-runners
+      labels: 8-core-ubuntu
+    env:
+      TARGET: "dev"
+    steps:
+      - name: Check out Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.2.1
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      ## install dependencies
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Notify Slack
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{secrets.SLACK_WEBHOOK_URL}}
+          GITHUB_EVENT_ACTION: ${{ github.event.action }}
+        run: |
+          source .github/script/review_helpers.sh
+          REVIEW_MEMBERS=$(cat .github/config/review_members.json)
+
+          PR_URL="${{ github.event.pull_request.html_url }}"
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_AUTHOR_LOGIN="${{ github.event.pull_request.user.login }}"
+
+          # is_review_member 함수가 없으므로 author가 멤버가 아니면 종료하는 로직 제거
+
+          AUTHOR_SLACK_ID=$(get_review_member_info "$REVIEW_MEMBERS" "$PR_AUTHOR_LOGIN" "slack_id")
+          AUTHOR_MENTION="<@${AUTHOR_SLACK_ID}>"
+
+          if [ "${{ job.status }}" = "success" ]; then
+            OVERALL_STATUS="success"
+            EMOJI=":white_check_mark:"
+          else
+            OVERALL_STATUS="failure"
+            EMOJI=":x:"
+          fi
+
+          MESSAGE="*PR:* <$PR_URL|$PR_TITLE> - ${EMOJI}
+          *작성자:* $AUTHOR_MENTION"
+
+          GITHUB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          if [ "$OVERALL_STATUS" = "failure" ]; then
+            MESSAGE="$MESSAGE
+            *Github Action:* $GITHUB_URL"
+          fi
+
+          if [ "$GITHUB_EVENT_ACTION" = "opened" ] || [ "$GITHUB_EVENT_ACTION" = "ready_for_review" ]; then
+            REVIEWER_LOGINS=$(echo '${{ toJSON(github.event.pull_request.requested_reviewers) }}' | jq -r '.[].login')
+            FIRST_REVIEWER=$(echo "$REVIEWER_LOGINS" | head -n1)
+            FIRST_REVIEWER_SLACK_ID=$(get_review_member_info "$REVIEW_MEMBERS" "$FIRST_REVIEWER" "slack_id")
+            REVIEWER_MENTION=""
+            if [ -n "$FIRST_REVIEWER_SLACK_ID" ]; then
+              REVIEWER_MENTION="<@${FIRST_REVIEWER_SLACK_ID}>"
+            fi
+            MESSAGE+="\n*리뷰어:* $REVIEWER_MENTION :crown-sw:"
+            echo "$REVIEWER_LOGINS" | tail -n +2 > reviewers_for_github_comment.txt
+          fi
+
+          curl -X POST -H 'Content-type: application/json' --data '{
+          "text": "'"$MESSAGE"'",
+          "username": "Main PR GitHub Action",
+          }' $SLACK_WEBHOOK_URL
+
+      - name: Notify Reviewer via GitHub Comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'reviewers_for_github_comment.txt';
+            if (fs.existsSync(path)) {
+              const reviewers = fs.readFileSync(path, 'utf-8').split('\n').filter(Boolean);
+              if (reviewers.length > 0) {
+                const reviewer = reviewers[0];
+                const prNumber = context.payload.pull_request.number;
+                github.rest.issues.createComment({
+                  ...context.repo,
+                  issue_number: prNumber,
+                  body: `@${reviewer} 님, 이 PR의 리뷰어로 지정되었습니다!`
+                });
+              }
+            }
