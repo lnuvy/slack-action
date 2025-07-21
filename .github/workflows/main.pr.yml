@@ -71,16 +71,8 @@ jobs:
           if [ "$GITHUB_EVENT_ACTION" = "opened" ] || [ "$GITHUB_EVENT_ACTION" = "ready_for_review" ]; then
             REVIEWER_LOGINS=$(echo '${{ toJSON(github.event.pull_request.requested_reviewers) }}' | jq -r '.[].login')
             echo "[DEBUG] REVIEWER_LOGINS: $REVIEWER_LOGINS"
-            FIRST_REVIEWER=$(echo "$REVIEWER_LOGINS" | head -n1)
-            echo "[DEBUG] FIRST_REVIEWER: $FIRST_REVIEWER"
-            FIRST_REVIEWER_SLACK_ID=$(get_review_member_info "$REVIEW_MEMBERS" "$FIRST_REVIEWER" "slack_id")
-            echo "[DEBUG] FIRST_REVIEWER_SLACK_ID: $FIRST_REVIEWER_SLACK_ID"
-            REVIEWER_MENTION=""
-            if [ -n "$FIRST_REVIEWER_SLACK_ID" ]; then
-              REVIEWER_MENTION="<@${FIRST_REVIEWER_SLACK_ID}>"
-            fi
-            MESSAGE+="\n*리뷰어:* $REVIEWER_MENTION :crown-sw:"
-            echo "$REVIEWER_LOGINS" | tail -n +2 > reviewers_for_github_comment.txt
+            # 모든 reviewer를 파일에 저장
+            echo "$REVIEWER_LOGINS" > reviewers_for_github_comment.txt
             echo "[DEBUG] reviewers_for_github_comment.txt 내용:"
             cat reviewers_for_github_comment.txt
           fi
@@ -104,15 +96,16 @@ jobs:
               const reviewers = fs.readFileSync(path, 'utf-8').split('\n').filter(Boolean);
               console.log('Found reviewers:', reviewers);
               if (reviewers.length > 0) {
-                const reviewer = reviewers[0];
                 const prNumber = context.payload.pull_request.number;
-                console.log(`Adding comment for reviewer: ${reviewer} on PR: ${prNumber}`);
-                await github.rest.issues.createComment({
-                  ...context.repo,
-                  issue_number: prNumber,
-                  body: `@${reviewer} 님, 이 PR의 리뷰어로 지정되었습니다!`
-                });
-                console.log('Comment added successfully');
+                for (const reviewer of reviewers) {
+                  console.log(`Adding comment for reviewer: ${reviewer} on PR: ${prNumber}`);
+                  await github.rest.issues.createComment({
+                    ...context.repo,
+                    issue_number: prNumber,
+                    body: `@${reviewer} 님, 이 PR의 리뷰어로 지정되었습니다!`
+                  });
+                }
+                console.log('All comments added successfully');
               } else {
                 console.log('No reviewers found in file');
               }
