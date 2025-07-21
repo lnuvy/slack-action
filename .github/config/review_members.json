@@ -3,12 +3,17 @@
     {
       "github_id": "lnuvy",
       "name": "lnuvy",
-      "slack_id": "aaa"
+      "slack_id": "aaa1"
     },
     {
       "github_id": "hanul586",
       "name": "hanul",
-      "slack_id": "aaa"
+      "slack_id": "aaa2"
+    },
+    {
+      "github_id": "pyeonjip",
+      "name": "pyeonjip",
+      "slack_id": "aaa3"
     }
   ]
 }
