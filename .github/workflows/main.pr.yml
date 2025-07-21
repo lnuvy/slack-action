@@ -8,9 +8,8 @@ on:
 jobs:
   build:
     name: Test And Build
-    runs-on:
-      group: drpalette-runners
-      labels: 8-core-ubuntu
+    runs-on: ubuntu-latest
+
     env:
       TARGET: "dev"
     steps:
