@@ -18,24 +18,20 @@ jobs:
         with:
           fetch-depth: 2
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.2.1
-
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "pnpm"
+          cache: "yarn"
 
       ## install dependencies
       - name: Install dependencies
-        run: pnpm install
+        run: yarn install
 
       - name: Notify Slack
         if: always()
         env:
-          SLACK_WEBHOOK_URL: ${{secrets.SLACK_WEBHOOK_URL}}
+          SLACK_INCOMING_URL: ${{secrets.SLACK_INCOMING_URL}}
           GITHUB_EVENT_ACTION: ${{ github.event.action }}
         run: |
           source .github/script/review_helpers.sh
@@ -80,10 +76,12 @@ jobs:
             echo "$REVIEWER_LOGINS" | tail -n +2 > reviewers_for_github_comment.txt
           fi
 
-          curl -X POST -H 'Content-type: application/json' --data '{
-          "text": "'"$MESSAGE"'",
-          "username": "Main PR GitHub Action",
-          }' $SLACK_WEBHOOK_URL
+          if [ -n "$SLACK_INCOMING_URL" ]; then
+            echo "[Slack 메시지 전송 생략]"
+            echo "보낼 메시지: $MESSAGE"
+          else
+            echo "SLACK_INCOMING_URL is not set, skipping Slack notification"
+          fi
 
       - name: Notify Reviewer via GitHub Comment
         if: github.event.action == 'opened' || github.event.action == 'ready_for_review'
